@@ -34,16 +34,16 @@
   };
 
   const PRIORITIES = [
-    { id: "price", ico: "💰", label: "価格を抑えたい", tags: ["コスパ", "価格重視", "適正価格"] },
-    { id: "insul", ico: "🌡️", label: "断熱・省エネ", tags: ["高断熱", "性能", "省エネ", "全館空調", "太陽光", "木製サッシ"] },
-    { id: "quake", ico: "🛡️", label: "耐震・災害に強い", tags: ["耐震", "鉄骨", "防災", "耐久性", "工場生産", "蓄電池"] },
-    { id: "design", ico: "🎨", label: "デザイン・雰囲気", tags: ["デザイン", "設計力", "上質", "洋風", "北欧", "木質感", "高級感"] },
-    { id: "chores", ico: "🧺", label: "家事動線・収納", tags: ["家事ラク", "収納", "蔵収納", "設備"] },
-    { id: "space", ico: "🌳", label: "広さ・庭", tags: ["大空間", "平屋"] },
-    { id: "kids", ico: "👶", label: "子育てしやすさ", tags: ["子育て", "収納"] },
-    { id: "commute", ico: "🚃", label: "通勤・駅近", tags: [] },
-    { id: "asset", ico: "🏛️", label: "資産性・大手の安心", tags: ["資産性", "大手安心", "保証", "ブランド", "街並み"] },
-    { id: "mainte", ico: "🔧", label: "メンテ費を抑える", tags: ["外壁タイル", "高耐久", "耐久性", "工場生産"] }
+    { id: "price", label: "価格を抑えたい", tags: ["コスパ", "価格重視", "適正価格"] },
+    { id: "insul", label: "断熱・省エネ", tags: ["高断熱", "性能", "省エネ", "全館空調", "太陽光", "木製サッシ"] },
+    { id: "quake", label: "耐震・災害に強い", tags: ["耐震", "鉄骨", "防災", "耐久性", "工場生産", "蓄電池"] },
+    { id: "design", label: "デザイン・雰囲気", tags: ["デザイン", "設計力", "上質", "洋風", "北欧", "木質感", "高級感"] },
+    { id: "chores", label: "家事動線・収納", tags: ["家事ラク", "収納", "蔵収納", "設備"] },
+    { id: "space", label: "広さ・庭", tags: ["大空間", "平屋"] },
+    { id: "kids", label: "子育てしやすさ", tags: ["子育て", "収納"] },
+    { id: "commute", label: "通勤・駅近", tags: [] },
+    { id: "asset", label: "資産性・大手の安心", tags: ["資産性", "大手安心", "保証", "ブランド", "街並み"] },
+    { id: "mainte", label: "メンテ費を抑える", tags: ["外壁タイル", "高耐久", "耐久性", "工場生産"] }
   ];
 
   const CITY_GROUPS = [
@@ -75,10 +75,10 @@
   }
 
   const COMMUTE = {
-    tokyo: { label: "都内へ電車通勤", ico: "🚃", lines: ["JR総武線", "JR京葉線", "JR常磐線", "東京メトロ東西線", "JR武蔵野線", "京成本線", "北総線", "東葉高速鉄道", "東武野田線"] },
-    chiba: { label: "千葉市・県内へ電車通勤", ico: "🚉", lines: ["JR総武線", "京成千葉線", "JR外房線", "京成千原線", "JR総武本線", "JR京葉線", "京成本線"] },
-    car: { label: "車通勤が中心", ico: "🚗", lines: [] },
-    home: { label: "在宅が多い・特になし", ico: "💻", lines: [] }
+    tokyo: { label: "都内へ電車通勤", lines: ["JR総武線", "JR京葉線", "JR常磐線", "東京メトロ東西線", "JR武蔵野線", "京成本線", "北総線", "東葉高速鉄道", "東武野田線"] },
+    chiba: { label: "千葉市・県内へ電車通勤", lines: ["JR総武線", "京成千葉線", "JR外房線", "京成千原線", "JR総武本線", "JR京葉線", "京成本線"] },
+    car: { label: "車通勤が中心", lines: [] },
+    home: { label: "在宅が多い・特になし", lines: [] }
   };
 
   // ───────── データ準備 ─────────
@@ -131,23 +131,20 @@
     {
       id: "land", title: "土地はどうしますか？", auto: true,
       render: () => opts("land", [
-        ["search", "これから探す", "土地と建物をセットで考える", "🔍"],
-        ["own", "土地はある", "親の土地・購入済みなど", "🏡"],
-        ["rebuild", "建て替え", "今の家を解体して建てる", "🔨"]
+        ["search", "これから探す", "土地と建物をセットで考える"],
+        ["own", "土地はある", "親の土地・購入済みなど（土地代はかかりません）"],
+        ["rebuild", "建て替え", "今の家を解体して建てる"]
       ]),
       valid: () => !!state.land
     },
     {
       id: "budget", title: "総予算はどのくらいですか？",
-      help: () => state.land === "search" ? "土地・建物・付帯工事・外構・諸費用をぜんぶ含めた金額です。" : "建物・付帯工事・外構・諸費用をぜんぶ含めた金額です（土地代は除く）。",
+      help: () => state.land === "search" ? "土地・建物・付帯工事・外構・諸費用をぜんぶ含めた金額です。" : "土地はお持ちなので、建物・付帯工事・外構・諸費用をぜんぶ含めた金額です（土地代は入りません）。",
       render: () => {
-        const list = state.land === "search"
-          ? [[5000, "〜5,000万円"], [5500, "5,000〜5,500万円"], [6000, "5,500〜6,000万円"], [6500, "6,000〜6,500万円"], [7000, "6,500〜7,000万円"],
-             [7500, "7,000〜7,500万円"], [8000, "7,500〜8,000万円"], [9000, "8,000〜9,000万円"], [10000, "9,000万〜1億円"], [12000, "1億円以上"]]
-          : [[2500, "〜2,500万円"], [3000, "2,500〜3,000万円"], [3500, "3,000〜3,500万円"], [4000, "3,500〜4,000万円"], [4500, "4,000〜4,500万円"],
-             [5000, "4,500〜5,000万円"], [6000, "5,000〜6,000万円"], [7000, "6,000〜7,000万円"], [8000, "7,000万円以上"]];
+        const list = [[5000, "5,000万円以下"], [5500, "5,000〜5,500万円"], [6000, "5,500〜6,000万円"], [6500, "6,000〜6,500万円"], [7000, "6,500〜7,000万円"],
+          [7500, "7,000〜7,500万円"], [8000, "7,500〜8,000万円"], [9000, "8,000〜9,000万円"], [10000, "9,000万〜1億円"], [12000, "1億円以上"]];
         let h = `<div class="opts cols-2 compact">` + list.map(([v, l]) => optBtn("budget", v, l)).join("") + `</div>`;
-        h += `<div class="opts" style="margin-top:8px">${optBtn("budget", "unknown", "まだ分からない", "年収から借入の目安を出します", "🤔")}</div>`;
+        h += `<div class="opts" style="margin-top:8px">${optBtn("budget", "unknown", "まだ分からない", "年収から借入の目安を出します")}</div>`;
         if (state.budget === "unknown") {
           h += `<p class="q-sub">世帯年収（税込）</p><div class="chips">` +
             [400, 500, 600, 700, 800, 1000, 1200].map(v => chip("income", v, v === 1200 ? "1,200万円〜" : `${fmt(v)}万円`)).join("") +
@@ -184,7 +181,7 @@
     {
       id: "commute", title: "通勤・駅までの距離は？",
       render: () => {
-        let h = `<p class="q-sub">ふだんの通勤</p>` + opts("commute", Object.entries(COMMUTE).map(([k, v]) => [k, v.label, "", v.ico]), "cols-2");
+        let h = `<p class="q-sub">ふだんの通勤</p>` + opts("commute", Object.entries(COMMUTE).map(([k, v]) => [k, v.label]), "cols-2");
         if (state.land === "search") {
           h += `<p class="q-sub">駅からの距離（あとで変えて比べられます）</p>` + opts("walk", Object.entries(WALK).map(([k, v]) => [k, v.label]));
         }
@@ -211,29 +208,29 @@
       help: () => "選んだ順に優先度が高くなります。",
       render: () => `<div class="opts cols-2">` + PRIORITIES.map(p => {
         const i = state.priorities.indexOf(p.id);
-        return `<button class="opt has-ico" type="button" data-prio="${p.id}" aria-pressed="${i >= 0}"><span class="ico" aria-hidden="true">${p.ico}</span><span class="opt-text"><strong>${p.label}</strong></span>${i >= 0 ? `<span class="rank">${i + 1}</span>` : ""}</button>`;
+        return `<button class="opt" type="button" data-prio="${p.id}" aria-pressed="${i >= 0}"><span class="opt-text"><strong>${p.label}</strong></span>${i >= 0 ? `<span class="rank">${i + 1}</span>` : ""}</button>`;
       }).join("") + `</div>`,
       valid: () => state.priorities.length > 0
     },
     {
       id: "freedom", title: "間取りの自由度は？", auto: true,
       render: () => opts("freedom", [
-        ["full", "自由に決めたい", "フルオーダー・自由設計", "✏️"],
-        ["semi", "選択式でもよい", "決まった中から選ぶセミオーダー", "🧩"],
-        ["price", "価格優先", "規格住宅も大歓迎", "💰"],
-        ["unknown", "まだ分からない", "3つの案で比べて決めたい", "🤔"]
+        ["full", "自由に決めたい", "フルオーダー・自由設計"],
+        ["semi", "選択式でもよい", "決まった中から選ぶセミオーダー"],
+        ["price", "価格優先", "規格住宅も大歓迎"],
+        ["unknown", "まだ分からない", "3つの案で比べて決めたい"]
       ]),
       valid: () => !!state.freedom
     }
   ];
 
   // ───────── UI部品 ─────────
-  function optBtn(key, value, label, sub, ico) {
+  function optBtn(key, value, label, sub) {
     const on = String(state[key]) === String(value);
-    return `<button class="opt ${ico ? "has-ico" : ""}" type="button" data-key="${key}" data-value="${value}" aria-pressed="${on}">${ico ? `<span class="ico" aria-hidden="true">${ico}</span>` : ""}<span class="opt-text"><strong>${label}</strong>${sub ? `<small>${sub}</small>` : ""}</span></button>`;
+    return `<button class="opt" type="button" data-key="${key}" data-value="${value}" aria-pressed="${on}"><span class="opt-text"><strong>${label}</strong>${sub ? `<small>${sub}</small>` : ""}</span></button>`;
   }
   function opts(key, list, cls = "") {
-    return `<div class="opts ${cls}">` + list.map(([v, l, s, i]) => optBtn(key, v, l, s, i)).join("") + `</div>`;
+    return `<div class="opts ${cls}">` + list.map(([v, l, s]) => optBtn(key, v, l, s)).join("") + `</div>`;
   }
   function chip(key, value, label) {
     const on = String(state[key]) === String(value);
@@ -357,6 +354,7 @@
     const items = [];
     const landPrice = buying ? tp * landTsubo : 0;
     if (buying) items.push({ k: "land", label: "土地", note: `${landTsubo}坪 × ${Math.round(tp)}万円/坪`, v: landPrice });
+    else items.push({ k: "land", label: "土地", note: state.land === "rebuild" ? "建て替え（今の土地を使う）" : "お持ちの土地を使う", v: 0 });
     if (state.land === "rebuild") items.push({ k: "demo", label: "解体工事", note: "既存の家の解体", v: floorTsubo * CONFIG.demolitionPerTsubo });
     const honntai = unit * floorTsubo;
     items.push({ k: "body", label: "建物本体", note: `${floorTsubo}坪 × ${Math.round(unit)}万円/坪`, v: honntai });
@@ -706,13 +704,13 @@
     $("#summary").innerHTML = `
       <div class="summary">
         <p class="eyebrow">YOUR RADAR</p>
-        <h2>総予算 <em>${fmt(tune.budget)}</em>万円で、<br>${fitCount ? `予算内の案が${fitCount}つ見つかりました。` : "条件を少しゆるめると見えてきます。"}</h2>
+        <h2>総予算 <em>${fmt(tune.budget)}</em>万円${buying ? "" : "（土地代なし）"}で、<br>${fitCount ? `予算内の案が${fitCount}つ見つかりました。` : "条件を少しゆるめると見えてきます。"}</h2>
         <dl class="summary-grid">
-          <div><dt>${buying ? "希望エリアの相場" : "延床"}</dt><dd>${buying ? `${Math.round(a.tp)}万/坪` : `${tune.floorTsubo}坪`}</dd></div>
-          <div><dt>${buying ? "土地の目安" : "間取り"}</dt><dd>${buying ? man(landPart) : roomsLabel()}</dd></div>
-          <div><dt>${buying ? "建物にまわせる額" : "駐車"}</dt><dd>${buying ? man(Math.max(0, tune.budget - landPart)) : `${parkingOf()}台`}</dd></div>
+          <div><dt>${buying ? "希望エリアの相場" : "土地代"}</dt><dd>${buying ? `${Math.round(a.tp)}万/坪` : "0円"}</dd></div>
+          <div><dt>${buying ? "土地の目安" : "延床"}</dt><dd>${buying ? man(landPart) : `${tune.floorTsubo}坪`}</dd></div>
+          <div><dt>${buying ? "建物にまわせる額" : "間取り"}</dt><dd>${buying ? man(Math.max(0, tune.budget - landPart)) : roomsLabel()}</dd></div>
         </dl>
-        <p class="summary-cond">${areaLabel()} ／ ${famLabel()}・${roomsLabel()}・駐車${parkingOf()}台${buying ? ` ／ ${WALK[state.walk].label}` : ""}${tune.budgetNote ? `<br>${tune.budgetNote}` : ""}</p>
+        <p class="summary-cond">${buying ? "" : `${state.land === "rebuild" ? "建て替え" : "土地はお持ち"}のため、土地代は計算に入れていません。<br>`}${areaLabel()} ／ ${famLabel()}・${roomsLabel()}・駐車${parkingOf()}台${buying ? ` ／ ${WALK[state.walk].label}` : ""}${tune.budgetNote ? `<br>${tune.budgetNote}` : ""}</p>
       </div>`;
 
     $("#walkDelta").innerHTML = walkComparison(tune, plans[0]);
@@ -816,7 +814,7 @@
         <table class="breakdown">${p.bd.items.map(i => `<tr><td><span style="color:${colors[i.k]}">■</span> ${i.label}<br><small>${i.note}</small></td><td>${man(i.v)}</td></tr>`).join("")}
           <tr class="total"><td>合計</td><td style="color:${fits ? "var(--ok)" : "var(--ember)"}">${man(p.bd.total)}</td></tr></table>
       </details>
-        <div class="bar-viz">${p.bd.items.map(i => `<span style="width:${(i.v / p.bd.total) * 100}%;background:${colors[i.k]}" title="${i.label}"></span>`).join("")}</div>
+        <div class="bar-viz">${p.bd.items.filter(i => i.v > 0).map(i => `<span style="width:${(i.v / p.bd.total) * 100}%;background:${colors[i.k]}" title="${i.label}"></span>`).join("")}</div>
         <p class="data-note" style="margin-top:4px">予算 ${fmt(p.target)}万円 → ${fits ? `残り約${man(p.target - p.bd.total)}` : `約${man(p.bd.total - p.target)}オーバー`}</p>
       </div>`;
     const reasons = [];
