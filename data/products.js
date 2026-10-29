@@ -31,8 +31,8 @@ window.PRODUCT_DATA = [
 
   // ── ロー・規格 ──
   { rec: 2, maker: "桧家住宅", product: "規格住宅", order: "kikaku", tsubo: [78, 100], tags: ["全館空調", "コスパ", "子育て"], note: "全館空調つきの規格住宅。", checked: "2026-06-16" },
-  { maker: "タマホーム", product: "注文住宅", order: "semi", tsubo: [60, 85], est: true, tags: ["価格重視", "コスパ", "自由設計"], note: "価格を抑えながら間取りも相談したい方に。", checked: "" },
-  { maker: "タマホーム", product: "規格住宅", order: "kikaku", tsubo: [40, 60], est: true, tags: ["価格重視", "コスパ"], note: "総額をしっかり抑えたい方に。", checked: "" },
+  { rec: 2, maker: "タマホーム", product: "注文住宅", order: "semi", tsubo: [60, 85], est: true, tags: ["価格重視", "コスパ", "自由設計"], note: "価格を抑えながら間取りも相談したい方に。", checked: "" },
+  { rec: 2, maker: "タマホーム", product: "規格住宅", order: "kikaku", tsubo: [40, 60], est: true, tags: ["価格重視", "コスパ"], note: "総額をしっかり抑えたい方に。", checked: "" },
   { rec: 2, maker: "セナリオハウス", product: "規格・セミオーダー", order: "kikaku", tsubo: [45, 85], tags: ["地域密着", "土地情報", "コスパ", "千葉地場"], note: "地域密着で土地探しから相談しやすい。", checked: "2026-06-16" },
 
   // ── 地域の工務店・設計事務所（個別社名は紹介時に） ──
