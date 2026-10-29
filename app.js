@@ -741,7 +741,7 @@
     return `<section class="brands">
       <p class="eyebrow">PREMIUM</p>
       <h3>憧れのハウスメーカーで建てるなら</h3>
-      <p>千葉レーダーが特におすすめする3社。今の条件で建てた場合の総額と、予算内で建てられる場所です。</p>
+      <p>千葉レーダーが特におすすめする${brands.length}社。今の条件で建てた場合の総額と、予算内で建てられる場所です。</p>
       <div class="brand-list">${cards}</div>
     </section>`;
   }
