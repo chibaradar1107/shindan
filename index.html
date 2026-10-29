@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f3d3e">
+  <title>千葉の家づくり診断｜千葉レーダー</title>
+  <meta name="description" content="予算・家族・大切にしたいことを選ぶだけ。千葉で、わが家の予算に合う街と家づくりの組み合わせを3つの案で出します。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="#" data-go="intro">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>千葉レーダー<small>CHIBA HOME RADAR</small></span>
+    </a>
+    <a class="bar-dm" href="https://www.threads.com/@chiba_home_radar" target="_blank" rel="noopener">Threadsで相談</a>
+  </header>
+
+  <main id="app">
+    <!-- イントロ -->
+    <section class="screen" data-screen="intro">
+      <p class="eyebrow">CHIBA HOME DIAGNOSIS</p>
+      <h1 class="hero-title">千葉で、わが家の予算に合う<br>街と家づくりが見つかる。</h1>
+      <p class="lead">7つの質問に答えるだけ。<b>エリア × 住宅会社 × 建て方</b>の組み合わせを、3つの案で出します。土地・建物・付帯工事・外構・諸費用・予備費まで含めた総額で計算します。</p>
+      <ul class="intro-points">
+        <li><span>3分</span>選ぶだけ・登録なし</li>
+        <li><span>176駅</span>千葉の駅別土地相場</li>
+        <li><span>3案</span>場所優先／家優先／総額を抑える</li>
+      </ul>
+      <button class="btn-primary" type="button" data-go="q1">診断をはじめる</button>
+      <p class="fine">「分からない」を選んでも進められます。</p>
+    </section>
+
+    <!-- 質問 -->
+    <section class="screen" data-screen="quiz" hidden>
+      <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+      <p class="step-count" id="stepCount"></p>
+      <div id="question"></div>
+      <div class="quiz-nav">
+        <button class="btn-ghost" type="button" id="backBtn">戻る</button>
+        <button class="btn-primary" type="button" id="nextBtn">次へ</button>
+      </div>
+    </section>
+
+    <!-- 結果 -->
+    <section class="screen" data-screen="result" hidden>
+      <div id="result"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p><span id="dataSource"></span>住宅会社の坪単価：千葉レーダー調べの目安。実際の金額は土地・プラン・仕様で変わります。</p>
+    <p>© 2026 Chiba Radar</p>
+  </footer>
+
+  <script src="data/stations.js"></script>
+  <script src="data/products.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

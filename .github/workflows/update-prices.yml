@@ -1,0 +1,39 @@
+# 毎月、国交省「不動産情報ライブラリ」から駅別の土地相場を更新してコミットする。
+# 事前準備：リポジトリの Settings → Secrets and variables → Actions に
+#   REINFOLIB_API_KEY（不動産情報ライブラリのAPIキー）を登録する。
+name: 相場の自動更新
+
+on:
+  schedule:
+    - cron: "0 0 5 * *"   # 毎月5日 9:00（日本時間）
+  workflow_dispatch:       # Actions の画面から手動でも実行できる
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 相場を取得して stations.js を更新
+        env:
+          REINFOLIB_API_KEY: ${{ secrets.REINFOLIB_API_KEY }}
+        run: python3 scripts/update_prices.py | tee update.log
+
+      - name: 変わっていればコミット
+        run: |
+          if git diff --quiet data/stations.js; then
+            echo "変更なし"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/stations.js
+          git commit -m "相場を自動更新 $(date +%Y-%m-%d)" -m "$(cat update.log)"
+          git push
