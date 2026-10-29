@@ -764,6 +764,7 @@
             <div class="product-head"><strong>${x.rec ? `<span class="star">★</span>` : ""}${x.maker}</strong><span class="order">${x.product === ORDER[x.order].short ? x.product : `${x.product}・${ORDER[x.order].short}`}</span></div>
             <div class="price">本体 ${x.tsubo[0]}〜${x.tsubo[1]}万円/坪 ／ 総額目安 ${man(x.total)}</div>
             <div class="why">${(x.matched && x.matched.length ? x.matched.slice(0, 2).join("、") + "。" : "") + x.note}</div>
+            ${x.src ? `<div class="src">根拠：${x.src}</div>` : ""}
             <div class="badges">
               ${x.fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">${man(x.total - p.target)}オーバー</span>`}
               ${x.rec ? `<span class="badge rec">千葉レーダーおすすめ</span>` : ""}
