@@ -89,6 +89,8 @@
     const m = CONFIG.stationMeta;
     const el = document.getElementById("dataSource");
     if (el) el.textContent = `駅別坪単価：${m.source}（最終更新 ${m.updated}）。`;
+    const hc = document.getElementById("heroCount");
+    if (hc) hc.textContent = STATIONS.length;
   }
 
   // ───────── 状態 ─────────
@@ -99,14 +101,14 @@
     family: null, rooms: null, parking: null,
     priorities: [], freedom: null,
     landTsubo: null, floorTsubo: null,
-    plan: 0, consultDirty: false
+    plan: 0, consultDirty: false, brandPicks: []
   };
   let stepIndex = 0;
 
   // ───────── 質問 ─────────
   const QUESTIONS = [
     {
-      id: "land", title: "土地はどうしますか？",
+      id: "land", title: "土地はどうしますか？", auto: true,
       render: () => opts("land", [
         ["search", "これから探す", "土地と建物をセットで考える"],
         ["own", "土地はある", "親の土地・購入済みなど"],
@@ -149,6 +151,9 @@
           return chipMulti("lines", l, `${l}<small>${c}駅</small>`);
         }).join("") + `</div>`;
         else h += `<p class="note-box">次の質問の通勤条件と予算から、千葉県内の${STATIONS.length}駅から候補を探します。</p>`;
+        const picked = state.areaMode === "city" ? STATIONS.filter(s => state.cities.includes(s.city)).length
+          : state.areaMode === "line" ? STATIONS.filter(s => s.lines.some(l => state.lines.includes(l))).length : 0;
+        if (picked) h += `<p class="picked">選択中：${picked}駅をスキャンします</p>`;
         return h;
       },
       valid: () => state.land !== "search" || state.areaMode === "auto" || (state.areaMode === "city" ? state.cities.length > 0 : state.lines.length > 0)
@@ -167,9 +172,9 @@
     {
       id: "family", title: "家族と暮らし方は？",
       render: () => {
-        let h = `<p class="q-sub">住む人数</p><div class="chips">` + [[2, "2人"], [3, "3人"], [4, "4人"], [5, "5人以上"]].map(([v, l]) => chip("family", v, l)).join("") + `</div>`;
-        h += `<p class="q-sub">ほしい間取り</p><div class="chips">` + [[2, "2LDK"], [3, "3LDK"], [4, "4LDK"], [5, "5LDK以上"]].map(([v, l]) => chip("rooms", v, l)).join("") + `</div>`;
-        h += `<p class="q-sub">駐車台数</p><div class="chips">` + [[0, "なし"], [1, "1台"], [2, "2台"], [3, "3台以上"]].map(([v, l]) => chip("parking", v, l)).join("") + `</div>`;
+        let h = `<p class="q-sub">住む人数</p><div class="chips big">` + [[2, "2人"], [3, "3人"], [4, "4人"], [5, "5人以上"]].map(([v, l]) => chip("family", v, l)).join("") + `</div>`;
+        h += `<p class="q-sub">ほしい間取り</p><div class="chips big">` + [[2, "2LDK"], [3, "3LDK"], [4, "4LDK"], [5, "5LDK以上"]].map(([v, l]) => chip("rooms", v, l)).join("") + `</div>`;
+        h += `<p class="q-sub">駐車台数</p><div class="chips big">` + [[0, "なし"], [1, "1台"], [2, "2台"], [3, "3台以上"]].map(([v, l]) => chip("parking", v, l)).join("") + `</div>`;
         return h;
       },
       valid: () => state.family != null && state.rooms != null && state.parking != null
@@ -184,7 +189,7 @@
       valid: () => state.priorities.length > 0
     },
     {
-      id: "freedom", title: "間取りの自由度は？",
+      id: "freedom", title: "間取りの自由度は？", auto: true,
       render: () => opts("freedom", [
         ["full", "自由に決めたい", "フルオーダー・自由設計"],
         ["semi", "選択式でもよい", "決まった中から選ぶセミオーダー"],
@@ -224,13 +229,13 @@
     document.querySelectorAll(".screen").forEach(s => { s.hidden = s.dataset.screen !== name; });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function renderQuestion() {
+  function renderQuestion(animate = false) {
     const q = QUESTIONS[stepIndex];
     const title = typeof q.title === "function" ? q.title() : q.title;
     const help = q.help ? q.help() : "";
     $("#progressBar").style.width = `${((stepIndex + 1) / QUESTIONS.length) * 100}%`;
-    $("#stepCount").textContent = `QUESTION ${stepIndex + 1} / ${QUESTIONS.length}`;
-    $("#question").innerHTML = `<h2 class="q-title">${title}</h2>${help ? `<p class="q-help">${help}</p>` : ""}${q.render()}`;
+    $("#stepCount").textContent = `${stepIndex + 1} / ${QUESTIONS.length}`;
+    $("#question").innerHTML = `<div class="${animate ? "q-anim" : ""}"><h2 class="q-title">${title}</h2>${help ? `<p class="q-help">${help}</p>` : ""}${q.render()}</div>`;
     $("#nextBtn").disabled = !q.valid();
     $("#nextBtn").textContent = stepIndex === QUESTIONS.length - 1 ? "診断する" : "次へ";
   }
@@ -240,7 +245,7 @@
     if (go) {
       e.preventDefault();
       if (go.dataset.go === "intro") show("intro");
-      else { stepIndex = 0; show("quiz"); renderQuestion(); }
+      else { stepIndex = 0; show("quiz"); renderQuestion(true); }
       return;
     }
     const q = e.target.closest("#question");
@@ -262,16 +267,21 @@
       if (b.dataset.key === "land") { state.budget = null; }
     }
     renderQuestion();
+    // 1つ選べば決まる質問は、そのまま次へ進む
+    const cur = QUESTIONS[stepIndex];
+    const single = cur.auto || (cur.id === "budget" && typeof state.budget === "number");
+    if (single && b.dataset.key && cur.valid()) setTimeout(goNext, 260);
   });
 
-  $("#nextBtn").addEventListener("click", () => {
+  function goNext() {
     if (!QUESTIONS[stepIndex].valid()) return;
-    if (stepIndex < QUESTIONS.length - 1) { stepIndex++; renderQuestion(); window.scrollTo({ top: 0 }); }
+    if (stepIndex < QUESTIONS.length - 1) { stepIndex++; renderQuestion(true); window.scrollTo({ top: 0 }); }
     else startResult();
-  });
+  }
+  $("#nextBtn").addEventListener("click", goNext);
   $("#backBtn").addEventListener("click", () => {
     if (stepIndex === 0) show("intro");
-    else { stepIndex--; renderQuestion(); }
+    else { stepIndex--; renderQuestion(true); }
   });
 
   // ───────── 計算 ─────────
@@ -349,6 +359,7 @@
     score += fit;
     if (opt.cheap) score += (110 - unitOf(p)) / 3;
     if (p.local && state.priorities.includes("design")) score += 3;
+    score += { 1: 22, 2: 11 }[p.rec] || 0;   // 千葉レーダーのおすすめ会社
     return { score, matched };
   }
 
@@ -423,7 +434,12 @@
       const give = [];
       const want = state.freedom === "full" ? "full" : state.freedom === "semi" ? "semi" : null;
       if (want && top.order !== want) give.push(`間取りの自由度を「${ORDER[want].short}」→「${ORDER[top.order].short}」に下げて予算を合わせています。`);
-      if (!fitting.length) give.push(`いちばん安い組み合わせでも約${man(top.total - budget)}オーバー。土地の広さや駅距離をゆるめる必要があります。`);
+      if (!fitting.length) {
+        const cheapest = breakdown(top, stations[0].tpAdj, L, F).total;
+        give.push(cheapest <= budget
+          ? `希望エリアの平均的な相場だと約${man(top.total - budget)}オーバー。予算内に収まるのは、相場が低めの駅です。`
+          : `いちばん安い組み合わせでも約${man(top.total - budget)}オーバー。土地の広さや駅距離をゆるめる必要があります。`);
+      }
       if (ok.length && ok.length < sel.length) give.push(`選んだエリア${sel.length}駅のうち、予算内は${ok.length}駅。人気駅は予算オーバーです。`);
       plans.push({
         key: "area", name: "希望エリア優先案", lead: "場所はゆずらず、建て方で予算を合わせる。",
@@ -537,46 +553,65 @@
     tune = { budget: b.value, budgetNote: b.note, floorTsubo: F, landTsubo: defaultLand(F) };
     state.plan = 0;
     state.consultDirty = false;
-    show("result");
-    renderResultShell();
-    renderResultBody();
+    state.brandPicks = [];
+    show("scanning");
+    const n = state.land === "search" ? selectedStations().length : PRODUCTS.length;
+    $("#scanText").textContent = state.land === "search"
+      ? `${n}駅 × ${PRODUCTS.length}の建て方を、総額で計算しています…`
+      : `${PRODUCTS.length}の建て方を、総額で計算しています…`;
+    setTimeout(() => { show("result"); renderResultShell(); renderResultBody(); }, 1300);
   }
 
   function renderResultShell() {
     const buying = state.land === "search";
     const bMin = buying ? 2500 : 1200, bMax = buying ? 12000 : 8000;
+    const wide = window.matchMedia("(min-width: 980px)").matches;
     $("#result").innerHTML = `
-      <div id="summary"></div>
-      <div class="tuner">
-        <h3>条件を動かして比べる</h3>
-        <p class="hint">動かすと、下の3つの案がすぐ変わります。</p>
-        <div class="tune-row"><label>総予算 <output id="oBudget"></output></label>
-          <input type="range" id="tBudget" min="${bMin}" max="${bMax}" step="100" value="${tune.budget}"></div>
-        ${buying ? `<div class="tune-row"><label>駅からの距離</label><div class="seg" id="tWalk">${Object.entries(WALK).map(([k, w]) => `<button type="button" data-walk="${k}" aria-pressed="${state.walk === k}">${w.short}</button>`).join("")}</div></div>
-        <div class="tune-row"><label>土地の広さ <output id="oLand"></output></label>
-          <input type="range" id="tLand" min="25" max="80" step="1" value="${tune.landTsubo}"></div>` : ""}
-        <div class="tune-row"><label>建物の広さ（延床） <output id="oFloor"></output></label>
-          <input type="range" id="tFloor" min="22" max="50" step="1" value="${tune.floorTsubo}"></div>
-        <div id="walkDelta"></div>
-      </div>
-      <div class="plan-tabs" role="tablist" id="planTabs"></div>
-      <div id="planBody"></div>
-      <div class="consult" id="consult">
-        <h3>この条件で本当に建てられるか、<br>千葉レーダーに相談する</h3>
-        <p>診断の内容を相談文にしました。そのままでも、書き足しても大丈夫です。</p>
-        <textarea id="consultText" aria-label="相談文"></textarea>
-        <div class="actions">
-          <a class="btn-ember btn-wide" id="toThreads" href="${CONFIG.threadsUrl}" target="_blank" rel="noopener">相談文をコピーしてThreadsを開く</a>
-          <button class="btn-ghost btn-wide" type="button" id="copyOnly" style="color:var(--paper);border-color:rgba(244,239,228,.5)">コピーだけする</button>
+      <div class="result-grid">
+        <aside class="result-side">
+          <div id="summary"></div>
+          <details class="tuner" ${wide ? "open" : ""}>
+            <summary><h3>条件を動かして比べる</h3><span class="chev">▼</span></summary>
+            <p class="tuner-now" id="tunerNow"></p>
+            <div class="tuner-body">
+              <div class="tune-row"><label>総予算 <output id="oBudget"></output></label>
+                <input type="range" id="tBudget" min="${bMin}" max="${bMax}" step="100" value="${tune.budget}"></div>
+              ${buying ? `<div class="tune-row"><label>駅からの距離</label><div class="seg" id="tWalk">${Object.entries(WALK).map(([k, w]) => `<button type="button" data-walk="${k}" aria-pressed="${state.walk === k}">${w.short}</button>`).join("")}</div></div>
+              <div class="tune-row"><label>土地の広さ <output id="oLand"></output></label>
+                <input type="range" id="tLand" min="25" max="80" step="1" value="${tune.landTsubo}"></div>` : ""}
+              <div class="tune-row"><label>建物の広さ（延床） <output id="oFloor"></output></label>
+                <input type="range" id="tFloor" min="22" max="50" step="1" value="${tune.floorTsubo}"></div>
+              <div id="walkDelta"></div>
+            </div>
+          </details>
+        </aside>
+        <div class="result-main">
+          <div class="section-head"><h3>3つの案</h3><p>タップで詳しく</p></div>
+          <div class="plan-cards" role="tablist" id="planCards"></div>
+          <div class="dots-nav" id="planDots"></div>
+          <div id="planBody"></div>
+          <div id="brands"></div>
+          <div class="consult" id="consult">
+            <p class="eyebrow">CONSULT</p>
+            <h3>この条件で本当に建てられるか、<br>千葉レーダーに相談する</h3>
+            <p>診断の内容を相談文にしました。そのままでも、書き足しても大丈夫です。</p>
+            <textarea id="consultText" aria-label="相談文"></textarea>
+            <div class="actions">
+              <a class="btn-ember btn-wide" id="toThreads" href="${CONFIG.threadsUrl}" target="_blank" rel="noopener">相談文をコピーしてThreadsを開く</a>
+              <button class="btn-light btn-wide" type="button" id="copyOnly">コピーだけする</button>
+            </div>
+            <ol class="steps">
+              <li>ボタンを押すと相談文がコピーされ、千葉レーダーのThreadsが開きます</li>
+              <li>プロフィールの「メッセージ」から、貼り付けて送信</li>
+            </ol>
+            <p class="sub-link"><a href="${CONFIG.instagramDmUrl}" target="_blank" rel="noopener">InstagramのDMで送る場合はこちら</a></p>
+            <p class="disclose" id="disclose"></p>
+          </div>
+          <div class="restart"><button class="btn-ghost" type="button" id="restart">条件を選び直す</button></div>
         </div>
-        <ol class="steps">
-          <li>ボタンを押すと相談文がコピーされ、千葉レーダーのThreadsが開きます</li>
-          <li>プロフィールの「メッセージ」から、貼り付けて送信</li>
-        </ol>
-        <p class="sub-link" style="margin-top:8px"><a href="${CONFIG.instagramDmUrl}" target="_blank" rel="noopener" style="color:inherit">InstagramのDMで送る場合はこちら</a></p>
-        <p class="disclose" id="disclose"></p>
       </div>
-      <div class="restart"><button class="btn-ghost" type="button" id="restart">条件を選び直す</button></div>`;
+      <div class="result-pad"></div>
+      <div class="sticky-cta" id="stickyCta"><a class="btn-ember" href="#consult">この結果をThreadsで相談する</a></div>`;
 
     $("#tBudget").addEventListener("input", e => { tune.budget = +e.target.value; renderResultBody(); });
     $("#tFloor").addEventListener("input", e => { tune.floorTsubo = +e.target.value; renderResultBody(); });
@@ -589,93 +624,162 @@
         renderResultBody();
       });
     }
-    $("#planTabs").addEventListener("click", e => {
+    $("#planCards").addEventListener("click", e => {
       const b = e.target.closest("[data-plan]"); if (!b) return;
       state.plan = +b.dataset.plan;
       renderResultBody();
+      $("#planBody").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    $("#planCards").addEventListener("scroll", e => {
+      const el = e.currentTarget;
+      const i = Math.round(el.scrollLeft / (el.scrollWidth / 3));
+      $("#planDots").querySelectorAll("span").forEach((d, j) => d.classList.toggle("on", j === i));
+    }, { passive: true });
+    $("#brands").addEventListener("click", e => {
+      const b = e.target.closest("[data-pick]"); if (!b) return;
+      const m = b.dataset.pick, i = state.brandPicks.indexOf(m);
+      i >= 0 ? state.brandPicks.splice(i, 1) : state.brandPicks.push(m);
+      renderResultBody();
+      if (i < 0) toast(`${m}を相談文に入れました`);
     });
     $("#consultText").addEventListener("input", () => { state.consultDirty = true; });
     $("#toThreads").addEventListener("click", () => copyText($("#consultText").value, "コピーしました。Threadsのメッセージに貼り付けてください"));
     $("#copyOnly").addEventListener("click", () => copyText($("#consultText").value, "相談文をコピーしました"));
     $("#restart").addEventListener("click", () => { stepIndex = 0; show("quiz"); renderQuestion(); });
+
+    // 相談欄が見えているあいだは、下の固定ボタンを隠す
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(([en]) => $("#stickyCta").classList.toggle("hide", en.isIntersecting), { threshold: 0.15 })
+        .observe($("#consult"));
+    }
   }
 
-  let lastPlans = [];
   function renderResultBody() {
     const buying = state.land === "search";
     $("#oBudget").textContent = `${fmt(tune.budget)}万円`;
     $("#oFloor").textContent = `${tune.floorTsubo}坪（約${Math.round(tune.floorTsubo * 3.306)}㎡）`;
     if (buying) $("#oLand").textContent = `${tune.landTsubo}坪（約${Math.round(tune.landTsubo * 3.306)}㎡）`;
+    $("#tunerNow").textContent = `予算 ${fmt(tune.budget)}万円${buying ? `・${WALK[state.walk].short}・土地${tune.landTsubo}坪` : ""}・延床${tune.floorTsubo}坪`;
 
     const plans = diagnose(tune);
-    lastPlans = plans;
     const plan = plans[state.plan] || plans[0];
 
     // サマリー
     const a = plans[0];
     const landPart = buying ? a.bd.items.find(i => i.k === "land").v : 0;
+    const fitCount = plans.filter(p => p.bd.total <= p.target).length;
     $("#summary").innerHTML = `
       <div class="summary">
         <p class="eyebrow">YOUR RADAR</p>
-        <h2>総予算 ${fmt(tune.budget)}万円で、<br>${buying ? "3つの組み合わせが見つかりました。" : "3つの建て方を比べました。"}</h2>
+        <h2>総予算 <em>${fmt(tune.budget)}</em>万円で、<br>${fitCount ? `予算内の案が${fitCount}つ見つかりました。` : "条件を少しゆるめると見えてきます。"}</h2>
         <dl class="summary-grid">
-          <div><dt>${buying ? "希望エリアの坪単価" : "延床"}</dt><dd>${buying ? `${Math.round(a.tp)}万/坪` : `${tune.floorTsubo}坪`}</dd></div>
-          <div><dt>${buying ? "土地の目安" : "建て方"}</dt><dd>${buying ? man(landPart) : "3案"}</dd></div>
-          <div><dt>${buying ? "建物にまわせる額" : "間取り"}</dt><dd>${buying ? man(Math.max(0, tune.budget - landPart)) : `${state.rooms}LDK`}</dd></div>
+          <div><dt>${buying ? "希望エリアの相場" : "延床"}</dt><dd>${buying ? `${Math.round(a.tp)}万/坪` : `${tune.floorTsubo}坪`}</dd></div>
+          <div><dt>${buying ? "土地の目安" : "間取り"}</dt><dd>${buying ? man(landPart) : `${state.rooms}LDK`}</dd></div>
+          <div><dt>${buying ? "建物にまわせる額" : "駐車"}</dt><dd>${buying ? man(Math.max(0, tune.budget - landPart)) : `${state.parking}台`}</dd></div>
         </dl>
         <p class="summary-cond">${areaLabel()} ／ ${state.family}人・${state.rooms}LDK・駐車${state.parking}台${buying ? ` ／ ${WALK[state.walk].label}` : ""}${tune.budgetNote ? `<br>${tune.budgetNote}` : ""}</p>
       </div>`;
 
     $("#walkDelta").innerHTML = walkComparison(tune, plans[0]);
 
-    $("#planTabs").innerHTML = plans.map((p, i) => {
+    $("#planCards").innerHTML = plans.map((p, i) => {
       const fits = p.bd.total <= p.target;
-      return `<button class="plan-tab" role="tab" data-plan="${i}" aria-selected="${i === state.plan}">
-        <small>PLAN ${"ABC"[i]}</small><strong>${p.name}</strong>
-        <span class="fit" style="color:${fits ? "var(--ok)" : "var(--ember)"}">${fits ? `予算内 ${man(p.bd.total)}` : `${man(p.bd.total - p.target)}オーバー`}</span></button>`;
+      const where = buying && p.stations[0] ? `<b>${p.stations[0].name}</b>周辺 ・ ` : "";
+      return `<button class="plan-card" type="button" role="tab" data-plan="${i}" aria-selected="${i === state.plan}">
+        <span class="pc-top"><small>PLAN ${"ABC"[i]}</small>${fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">${man(p.bd.total - p.target)}オーバー</span>`}</span>
+        <span class="pc-name">${p.name}</span>
+        <span class="pc-total" style="color:${fits ? "var(--ok)" : "var(--ember)"}">${man(p.bd.total)}</span>
+        <span class="pc-meta">${where}<b>${p.top.rec ? "★" : ""}${p.top.maker}</b>・${ORDER[p.top.order].short}</span>
+      </button>`;
     }).join("");
+    $("#planDots").innerHTML = plans.map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("");
 
     $("#planBody").innerHTML = renderPlan(plan, buying);
+    $("#brands").innerHTML = renderBrands(tune, plans);
 
-    const partners = PRODUCTS.some(p => p.partner);
-    $("#disclose").textContent = (partners ? "「紹介できます」は千葉レーダーから担当者をご紹介できる会社です。おすすめの順番には影響しません。" : "診断のおすすめは、条件との一致度と予算で並べています。") + "相談は無料です。";
+    $("#disclose").textContent = "★は千葉レーダーのおすすめ会社です。条件が近い場合は優先して表示しています。相談は無料です。";
 
     if (!state.consultDirty) $("#consultText").value = consultText(plans, plan);
+  }
+
+  // いちばん推したい会社（rec:1）で建てるといくらか、どこなら建てられるか
+  function renderBrands(t, plans) {
+    const buying = state.land === "search";
+    const brands = PRODUCTS.filter(p => p.rec === 1 && p.order === "full");
+    if (!brands.length) return "";
+    const { budget, landTsubo: L, floorTsubo: F } = t;
+    const sel = buying ? selectedStations() : [];
+    const selLines = new Set(sel.flatMap(s => s.lines));
+    const tpRef = buying ? median(sel.map(s => s.tpAdj)) : 0;
+    const cards = brands.map(p => {
+      const total = breakdown(p, tpRef, L, F).total;
+      const diff = total - budget;
+      let where = "";
+      if (buying) {
+        const limit = maxTp(p, budget, L, F);
+        const inArea = sel.filter(s => s.tpAdj <= limit).sort((a, b) => b.tpAdj - a.tpAdj);
+        const near = allStations().filter(s => s.tpAdj <= limit && s.lines.some(l => selLines.has(l)) && !inArea.some(x => x.name === s.name))
+          .sort((a, b) => b.tpAdj - a.tpAdj);
+        if (inArea.length) where = `予算内で建てられる駅：<b>${inArea.slice(0, 3).map(s => s.name).join("・")}</b>${inArea.length > 3 ? ` ほか${inArea.length - 3}駅` : ""}`;
+        else if (near.length) where = `同じ沿線なら予算内：<b>${near.slice(0, 3).map(s => s.name).join("・")}</b>`;
+        else where = `予算内にするには、延床を${Math.max(22, F - 6)}坪くらいにするか、予算をあと約${man(Math.max(0, diff))}`;
+      } else {
+        where = diff <= 0 ? `<b>予算内で建てられます</b>（残り約${man(-diff)}）` : `予算内にするには、延床を${Math.max(22, F - 6)}坪くらいにするか、予算をあと約${man(diff)}`;
+      }
+      const picked = state.brandPicks.includes(p.maker);
+      return `<div class="brand-card">
+        <div class="bc-head"><strong>${p.maker}</strong><span>${p.tsubo[0]}〜${p.tsubo[1]}万/坪</span></div>
+        <p class="bc-note">${p.note}</p>
+        <div class="bc-row"><span>${buying ? "希望エリアで建てると" : "この条件で建てると"}</span><b style="color:${diff <= 0 ? "var(--ok)" : "var(--ember)"}">${man(total)}${diff > 0 ? `（+${man(diff)}）` : ""}</b></div>
+        <p class="bc-st">${where}</p>
+        <button class="pick" type="button" data-pick="${p.maker}" aria-pressed="${picked}">${picked ? "✓ 相談文に入れました" : "この会社も相談したい"}</button>
+      </div>`;
+    }).join("");
+    return `<section class="brands">
+      <p class="eyebrow">PREMIUM</p>
+      <h3>憧れのハウスメーカーで建てるなら</h3>
+      <p>千葉レーダーが特におすすめする3社。今の条件で建てた場合の総額と、予算内で建てられる場所です。</p>
+      <div class="brand-list">${cards}</div>
+    </section>`;
   }
 
   function renderPlan(p, buying) {
     const fits = p.bd.total <= p.target;
     const colors = { land: "#0f3d3e", demo: "#4d5f59", body: "#cf5a36", futai: "#e08a55", gaikou: "#b2863c", fee: "#8a9088", reserve: "#ddd2bd" };
     const stationsHtml = buying ? `
-      <div class="block"><h4>AREA ／ 候補の駅</h4>
+      <div class="block"><h4>AREA<span>候補の駅</span></h4>
         <div class="stations">${p.stations.map(s => `
-          <div class="station"><div><strong>${s.name}</strong> <small>${s.city}・${s.lines.join("／")}</small>
-            ${s.prev && CONFIG.stationMeta.periodTo ? ` <span class="badge est">取引が少なく自動補正なし</span>` : s.n != null && s.n < CONFIG.fewDataCount ? ` <span class="badge est">データ少なめ</span>` : ""}
-            ${s.area != null ? `<br><small>エリア全体の実取引（バス圏含む）：${Math.round(s.area)}万/坪・${s.an}件</small>` : ""}</div>
+          <div class="station"><div><strong>${s.name}</strong>
+            ${s.prev && CONFIG.stationMeta.periodTo ? ` <span class="badge est">取引少・自動補正なし</span>` : s.n != null && s.n < CONFIG.fewDataCount ? ` <span class="badge est">データ少なめ</span>` : ""}
+            <span class="st-sub">${s.city}・${s.lines.join("／")}</span>
+            ${s.area != null ? `<span class="st-sub">エリア全体の実取引（バス圏含む）${Math.round(s.area)}万/坪・${s.an}件</span>` : ""}</div>
             <div class="num">${Math.round(s.tpAdj)}万/坪<small style="color:${s.total <= p.target ? "var(--ok)" : "var(--ember)"}">総額 ${man(s.total)}</small></div></div>`).join("")}
         </div>
         ${p.stationsAll ? `<p class="data-note">選んだエリア${p.stationsAll}駅のうち、この組み合わせで予算内は${p.stationsOk}駅。</p>` : ""}
       </div>` : "";
     const productsHtml = `
-      <div class="block"><h4>HOUSE ／ 住宅会社と建て方</h4>
+      <div class="block"><h4>HOUSE<span>住宅会社と建て方</span></h4>
         <div class="products">${p.products.map((x, i) => `
-          <div class="product ${i === 0 ? "top" : ""}">
-            <div class="product-head"><strong>${x.maker}</strong><span class="order">${x.product === ORDER[x.order].short ? x.product : `${x.product}・${ORDER[x.order].short}`}</span></div>
+          <div class="product ${i === 0 ? "top" : ""} ${x.rec === 1 ? "rec1" : ""}">
+            <div class="product-head"><strong>${x.rec ? `<span class="star">★</span>` : ""}${x.maker}</strong><span class="order">${x.product === ORDER[x.order].short ? x.product : `${x.product}・${ORDER[x.order].short}`}</span></div>
             <div class="price">本体 ${x.tsubo[0]}〜${x.tsubo[1]}万円/坪 ／ 総額目安 ${man(x.total)}</div>
             <div class="why">${(x.matched && x.matched.length ? x.matched.slice(0, 2).join("、") + "。" : "") + x.note}</div>
             <div class="badges">
               ${x.fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">${man(x.total - p.target)}オーバー</span>`}
+              ${x.rec ? `<span class="badge rec">千葉レーダーおすすめ</span>` : ""}
               ${x.est ? `<span class="badge est">価格は推定・要確認</span>` : ""}
-              ${x.partner ? `<span class="badge partner">紹介できます</span>` : ""}
             </div>
           </div>`).join("")}
         </div></div>`;
     const bdHtml = `
-      <div class="block"><h4>BREAKDOWN ／ 概算の内訳（${p.top.maker}${buying ? `・${p.stations[0] ? p.stations[0].name : ""}` : ""}）</h4>
-        <div class="bar-viz">${p.bd.items.map(i => `<span style="width:${(i.v / p.bd.total) * 100}%;background:${colors[i.k]}" title="${i.label}"></span>`).join("")}</div>
+      <div class="block"><details class="bd">
+        <summary><h4>BREAKDOWN<span>概算の内訳</span></h4><span class="bd-total" style="color:${fits ? "var(--ok)" : "var(--ember)"}">${man(p.bd.total)} <span class="bd-open">▼</span></span></summary>
+        <p class="data-note" style="margin-top:6px">${p.top.maker}${buying && p.stations[0] ? `・${p.stations[0].name}駅周辺` : ""}で計算</p>
         <table class="breakdown">${p.bd.items.map(i => `<tr><td><span style="color:${colors[i.k]}">■</span> ${i.label}<br><small>${i.note}</small></td><td>${man(i.v)}</td></tr>`).join("")}
           <tr class="total"><td>合計</td><td style="color:${fits ? "var(--ok)" : "var(--ember)"}">${man(p.bd.total)}</td></tr></table>
-        <p class="data-note">予算 ${fmt(p.target)}万円 → ${fits ? `残り約${man(p.target - p.bd.total)}` : `約${man(p.bd.total - p.target)}オーバー`}</p>
+      </details>
+        <div class="bar-viz">${p.bd.items.map(i => `<span style="width:${(i.v / p.bd.total) * 100}%;background:${colors[i.k]}" title="${i.label}"></span>`).join("")}</div>
+        <p class="data-note" style="margin-top:4px">予算 ${fmt(p.target)}万円 → ${fits ? `残り約${man(p.target - p.bd.total)}` : `約${man(p.bd.total - p.target)}オーバー`}</p>
       </div>`;
     const reasons = [];
     if (p.top.matched && p.top.matched.length) reasons.push(...p.top.matched);
@@ -684,14 +788,14 @@
 
     return `
       <article class="plan">
-        <h3>${p.name}</h3>
-        <p class="plan-lead">${p.lead} ${fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">予算オーバー</span>`}</p>
+        <div class="plan-head"><div><h3>${p.name}</h3><p class="plan-lead">${p.lead}</p></div>
+          ${fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">予算オーバー</span>`}</div>
         ${stationsHtml}
         ${productsHtml}
         ${bdHtml}
-        <div class="block"><h4>WHY ／ 合う理由</h4><ul class="dots">${reasons.map(r => `<li>${r}</li>`).join("")}</ul></div>
-        <div class="block"><h4>TRADE-OFF ／ ゆずる必要がある条件</h4><ul class="dots give">${(p.give.length ? p.give : ["大きくゆずる条件はありません。"]).map(r => `<li>${r}</li>`).join("")}</ul></div>
-        <div class="block"><h4>NEXT ／ 次に確認すること</h4><ul class="dots check">${p.checks.map(r => `<li>${r}</li>`).join("")}</ul></div>
+        <div class="block"><h4>WHY<span>合う理由</span></h4><ul class="dots">${reasons.map(r => `<li>${r}</li>`).join("")}</ul></div>
+        <div class="block"><h4>TRADE-OFF<span>ゆずる必要がある条件</span></h4><ul class="dots give">${(p.give.length ? p.give : ["大きくゆずる条件はありません。"]).map(r => `<li>${r}</li>`).join("")}</ul></div>
+        <div class="block"><h4>NEXT<span>次に確認すること</span></h4><ul class="dots check">${p.checks.map(r => `<li>${r}</li>`).join("")}</ul></div>
         <p class="data-note">${buying ? `駅別坪単価：${CONFIG.stationMeta.source}（最終更新 ${CONFIG.stationMeta.updated}）。${CONFIG.stationMeta.areaSource ? `「エリア全体の実取引」は${CONFIG.stationMeta.areaSource}（${CONFIG.stationMeta.periodFrom}〜${CONFIG.stationMeta.periodTo}）。駅から遠い住宅地も含むため、駅近の相場とは差が出ます。` : ""}駅距離の補正（徒歩10分 ×1.15・バス可 ×0.8）は目安です。` : ""}住宅会社の坪単価は千葉レーダー調べの目安（${window.PRODUCT_DATA_UPDATED}時点）。付帯工事は本体の${CONFIG.futaiRate * 100}%、予備費は${CONFIG.reserveRate * 100}%で計算しています。</p>
       </article>`;
   }
@@ -717,6 +821,7 @@
     lines.push(`・総額の目安：${man(current.bd.total)}`);
     const others = plans.filter(p => p !== current).map(p => `${p.name}（${p.top.maker}${buying && p.stations[0] ? `・${p.stations[0].name}` : ""}）`);
     if (others.length) lines.push(`ほかの案：${others.join("／")}`);
+    if (state.brandPicks.length) lines.push(`気になる会社：${state.brandPicks.join("、")}`);
     lines.push("");
     lines.push("この条件で進められるか、相談したいです。");
     return lines.join("\n");
