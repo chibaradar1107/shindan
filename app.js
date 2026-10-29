@@ -15,6 +15,7 @@
     gaikouOwnLand: 150,
     demolitionPerTsubo: 4.5,  // 建て替えの解体費
     unitPosition: 0.35,       // 坪単価レンジのどこを概算に使うか（0=下限, 1=上限）
+    costInflation: 1.05,      // 直近の値上がりを見込んで、住宅会社の坪単価に上乗せする率
     loan: { rate: 0.010, years: 35, ratio: 0.20 },
     saveTarget: 0.90,         // 総額を抑える案は予算の9割に収める
     fewDataCount: 20
@@ -314,7 +315,9 @@
     return Math.max(30, Math.round(t));
   }
 
-  function unitOf(p) { return p.tsubo[0] + (p.tsubo[1] - p.tsubo[0]) * CONFIG.unitPosition; }
+  // 値上がり分を上乗せした坪単価（表示も計算もこれを使う）
+  function tsuboOf(p) { return p.tsubo.map(v => Math.round(v * CONFIG.costInflation)); }
+  function unitOf(p) { const [lo, hi] = tsuboOf(p); return lo + (hi - lo) * CONFIG.unitPosition; }
 
   function breakdown(p, tp, landTsubo, floorTsubo) {
     const buying = state.land === "search";
@@ -728,7 +731,7 @@
       }
       const picked = state.brandPicks.includes(p.maker);
       return `<div class="brand-card">
-        <div class="bc-head"><strong>${p.maker}</strong><span>${p.tsubo[0]}〜${p.tsubo[1]}万/坪</span></div>
+        <div class="bc-head"><strong>${p.maker}</strong><span>約${Math.round(unitOf(p))}万/坪</span></div>
         <p class="bc-note">${p.note}</p>
         <div class="bc-row"><span>${buying ? "希望エリアで建てると" : "この条件で建てると"}</span><b style="color:${diff <= 0 ? "var(--ok)" : "var(--ember)"}">${man(total)}${diff > 0 ? `（+${man(diff)}）` : ""}</b></div>
         <p class="bc-st">${where}</p>
@@ -762,7 +765,7 @@
         <div class="products">${p.products.map((x, i) => `
           <div class="product ${i === 0 ? "top" : ""} ${x.rec === 1 ? "rec1" : ""}">
             <div class="product-head"><strong>${x.rec ? `<span class="star">★</span>` : ""}${x.maker}</strong><span class="order">${x.product === ORDER[x.order].short ? x.product : `${x.product}・${ORDER[x.order].short}`}</span></div>
-            <div class="price">本体 ${x.tsubo[0]}〜${x.tsubo[1]}万円/坪 ／ 総額目安 ${man(x.total)}</div>
+            <div class="price">本体 約${Math.round(unitOf(x))}万円/坪（${tsuboOf(x).join("〜")}）／ 総額目安 ${man(x.total)}</div>
             <div class="why">${(x.matched && x.matched.length ? x.matched.slice(0, 2).join("、") + "。" : "") + x.note}</div>
             ${x.src ? `<div class="src">根拠：${x.src}</div>` : ""}
             <div class="badges">
@@ -797,7 +800,7 @@
         <div class="block"><h4>WHY<span>合う理由</span></h4><ul class="dots">${reasons.map(r => `<li>${r}</li>`).join("")}</ul></div>
         <div class="block"><h4>TRADE-OFF<span>ゆずる必要がある条件</span></h4><ul class="dots give">${(p.give.length ? p.give : ["大きくゆずる条件はありません。"]).map(r => `<li>${r}</li>`).join("")}</ul></div>
         <div class="block"><h4>NEXT<span>次に確認すること</span></h4><ul class="dots check">${p.checks.map(r => `<li>${r}</li>`).join("")}</ul></div>
-        <p class="data-note">${buying ? `駅別坪単価：${CONFIG.stationMeta.source}（最終更新 ${CONFIG.stationMeta.updated}）。${CONFIG.stationMeta.areaSource ? `「エリア全体の実取引」は${CONFIG.stationMeta.areaSource}（${CONFIG.stationMeta.periodFrom}〜${CONFIG.stationMeta.periodTo}）。駅から遠い住宅地も含むため、駅近の相場とは差が出ます。` : ""}駅距離の補正（徒歩10分 ×1.15・バス可 ×0.8）は目安です。` : ""}住宅会社の坪単価は千葉レーダー調べの目安（${window.PRODUCT_DATA_UPDATED}時点）。付帯工事は本体の${CONFIG.futaiRate * 100}%、予備費は${CONFIG.reserveRate * 100}%で計算しています。</p>
+        <p class="data-note">${buying ? `駅別坪単価：${CONFIG.stationMeta.source}（最終更新 ${CONFIG.stationMeta.updated}）。${CONFIG.stationMeta.areaSource ? `「エリア全体の実取引」は${CONFIG.stationMeta.areaSource}（${CONFIG.stationMeta.periodFrom}〜${CONFIG.stationMeta.periodTo}）。駅から遠い住宅地も含むため、駅近の相場とは差が出ます。` : ""}駅距離の補正（徒歩10分 ×1.15・バス可 ×0.8）は目安です。` : ""}住宅会社の坪単価は千葉レーダー調べの目安（${window.PRODUCT_DATA_UPDATED}時点）に、直近の値上がり分として${Math.round((CONFIG.costInflation - 1) * 100)}%を上乗せしています。付帯工事は本体の${CONFIG.futaiRate * 100}%、予備費は${CONFIG.reserveRate * 100}%で計算しています。</p>
       </article>`;
   }
 
