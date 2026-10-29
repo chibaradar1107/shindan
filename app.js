@@ -34,16 +34,16 @@
   };
 
   const PRIORITIES = [
-    { id: "price", label: "価格を抑えたい", tags: ["コスパ", "価格重視", "適正価格"] },
-    { id: "insul", label: "断熱・省エネ", tags: ["高断熱", "性能", "省エネ", "全館空調", "太陽光", "木製サッシ"] },
-    { id: "quake", label: "耐震・災害に強い", tags: ["耐震", "鉄骨", "防災", "耐久性", "工場生産", "蓄電池"] },
-    { id: "design", label: "デザイン・雰囲気", tags: ["デザイン", "設計力", "上質", "洋風", "北欧", "木質感", "高級感"] },
-    { id: "chores", label: "家事動線・収納", tags: ["家事ラク", "収納", "蔵収納", "設備"] },
-    { id: "space", label: "広さ・庭", tags: ["大空間", "平屋"] },
-    { id: "kids", label: "子育てしやすさ", tags: ["子育て", "収納"] },
-    { id: "commute", label: "通勤・駅近", tags: [] },
-    { id: "asset", label: "資産性・大手の安心", tags: ["資産性", "大手安心", "保証", "ブランド", "街並み"] },
-    { id: "mainte", label: "メンテ費を抑える", tags: ["外壁タイル", "高耐久", "耐久性", "工場生産"] }
+    { id: "price", ico: "💰", label: "価格を抑えたい", tags: ["コスパ", "価格重視", "適正価格"] },
+    { id: "insul", ico: "🌡️", label: "断熱・省エネ", tags: ["高断熱", "性能", "省エネ", "全館空調", "太陽光", "木製サッシ"] },
+    { id: "quake", ico: "🛡️", label: "耐震・災害に強い", tags: ["耐震", "鉄骨", "防災", "耐久性", "工場生産", "蓄電池"] },
+    { id: "design", ico: "🎨", label: "デザイン・雰囲気", tags: ["デザイン", "設計力", "上質", "洋風", "北欧", "木質感", "高級感"] },
+    { id: "chores", ico: "🧺", label: "家事動線・収納", tags: ["家事ラク", "収納", "蔵収納", "設備"] },
+    { id: "space", ico: "🌳", label: "広さ・庭", tags: ["大空間", "平屋"] },
+    { id: "kids", ico: "👶", label: "子育てしやすさ", tags: ["子育て", "収納"] },
+    { id: "commute", ico: "🚃", label: "通勤・駅近", tags: [] },
+    { id: "asset", ico: "🏛️", label: "資産性・大手の安心", tags: ["資産性", "大手安心", "保証", "ブランド", "街並み"] },
+    { id: "mainte", ico: "🔧", label: "メンテ費を抑える", tags: ["外壁タイル", "高耐久", "耐久性", "工場生産"] }
   ];
 
   const CITY_GROUPS = [
@@ -54,11 +54,31 @@
     { label: "外房・東部エリア", cities: ["大網白里市", "茂原市", "山武市", "旭市", "匝瑳市"] }
   ];
 
+  // SUUMOの市区町村別の土地ページ（https://suumo.jp/tochi/chiba/sc_○○/）。ないところは千葉県全体へ
+  const SUUMO_TOCHI = "https://suumo.jp/tochi/chiba/";
+  const CITY_SUUMO = {
+    "松戸市": "matsudo", "柏市": "kashiwa", "流山市": "nagareyama", "我孫子市": "abiko", "野田市": "noda", "鎌ケ谷市": "kamagaya",
+    "市川市": "ichikawa", "船橋市": "funabashi", "習志野市": "narashino", "浦安市": "urayasu", "八千代市": "yachiyo",
+    "千葉市中央区": "chibashichuo", "千葉市稲毛区": "chibashiinage", "千葉市美浜区": "chibashimihama", "千葉市花見川区": "chibashihanamigawa",
+    "千葉市若葉区": "chibashiwakaba", "千葉市緑区": "chibashimidori", "印西市": "inzai", "白井市": "shiroi", "佐倉市": "sakura",
+    "四街道市": "yotsukaido", "成田市": "narita", "八街市": "yachimata", "大網白里市": "oamishirasato", "茂原市": "mobara",
+    "山武市": "sammu", "旭市": "asahi", "匝瑳市": "sosa"
+  };
+  function suumoUrl(city) { return CITY_SUUMO[city] ? `${SUUMO_TOCHI}sc_${CITY_SUUMO[city]}/` : SUUMO_TOCHI; }
+  function suumoLinks(cities) {
+    const list = [...new Set(cities)].slice(0, 4);
+    if (!list.length) return "";
+    return `<div class="ext-links"><span>SUUMOで土地を探す</span>${list.map(c => `<a href="${suumoUrl(c)}" target="_blank" rel="noopener">${c}<i aria-hidden="true">↗</i></a>`).join("")}</div>`;
+  }
+  function bunjoLink(p, label = "千葉の分譲地を見る") {
+    return p.bunjo ? `<a class="lot-link" href="${p.bunjo}" target="_blank" rel="noopener">${p.maker}の${label}<i aria-hidden="true">↗</i></a>` : "";
+  }
+
   const COMMUTE = {
-    tokyo: { label: "都内へ電車通勤", lines: ["JR総武線", "JR京葉線", "JR常磐線", "東京メトロ東西線", "JR武蔵野線", "京成本線", "北総線", "東葉高速鉄道", "東武野田線"] },
-    chiba: { label: "千葉市・県内へ電車通勤", lines: ["JR総武線", "京成千葉線", "JR外房線", "京成千原線", "JR総武本線", "JR京葉線", "京成本線"] },
-    car: { label: "車通勤が中心", lines: [] },
-    home: { label: "在宅が多い・特になし", lines: [] }
+    tokyo: { label: "都内へ電車通勤", ico: "🚃", lines: ["JR総武線", "JR京葉線", "JR常磐線", "東京メトロ東西線", "JR武蔵野線", "京成本線", "北総線", "東葉高速鉄道", "東武野田線"] },
+    chiba: { label: "千葉市・県内へ電車通勤", ico: "🚉", lines: ["JR総武線", "京成千葉線", "JR外房線", "京成千原線", "JR総武本線", "JR京葉線", "京成本線"] },
+    car: { label: "車通勤が中心", ico: "🚗", lines: [] },
+    home: { label: "在宅が多い・特になし", ico: "💻", lines: [] }
   };
 
   // ───────── データ準備 ─────────
@@ -111,9 +131,9 @@
     {
       id: "land", title: "土地はどうしますか？", auto: true,
       render: () => opts("land", [
-        ["search", "これから探す", "土地と建物をセットで考える"],
-        ["own", "土地はある", "親の土地・購入済みなど"],
-        ["rebuild", "建て替え", "今の家を解体して建てる"]
+        ["search", "これから探す", "土地と建物をセットで考える", "🔍"],
+        ["own", "土地はある", "親の土地・購入済みなど", "🏡"],
+        ["rebuild", "建て替え", "今の家を解体して建てる", "🔨"]
       ]),
       valid: () => !!state.land
     },
@@ -122,10 +142,12 @@
       help: () => state.land === "search" ? "土地・建物・付帯工事・外構・諸費用をぜんぶ含めた金額です。" : "建物・付帯工事・外構・諸費用をぜんぶ含めた金額です（土地代は除く）。",
       render: () => {
         const list = state.land === "search"
-          ? [[3500, "3,500万円まで"], [4500, "4,500万円まで"], [5500, "5,500万円まで"], [6500, "6,500万円まで"], [8000, "8,000万円まで"], [10000, "1億円まで"]]
-          : [[2000, "2,000万円まで"], [2500, "2,500万円まで"], [3000, "3,000万円まで"], [4000, "4,000万円まで"], [5000, "5,000万円まで"], [7000, "7,000万円まで"]];
-        let h = `<div class="opts cols-2">` + list.map(([v, l]) => optBtn("budget", v, l)).join("") + `</div>`;
-        h += `<div class="opts" style="margin-top:8px">${optBtn("budget", "unknown", "まだ分からない", "年収から借入の目安を出します")}</div>`;
+          ? [[5000, "〜5,000万円"], [5500, "5,000〜5,500万円"], [6000, "5,500〜6,000万円"], [6500, "6,000〜6,500万円"], [7000, "6,500〜7,000万円"],
+             [7500, "7,000〜7,500万円"], [8000, "7,500〜8,000万円"], [9000, "8,000〜9,000万円"], [10000, "9,000万〜1億円"], [12000, "1億円以上"]]
+          : [[2500, "〜2,500万円"], [3000, "2,500〜3,000万円"], [3500, "3,000〜3,500万円"], [4000, "3,500〜4,000万円"], [4500, "4,000〜4,500万円"],
+             [5000, "4,500〜5,000万円"], [6000, "5,000〜6,000万円"], [7000, "6,000〜7,000万円"], [8000, "7,000万円以上"]];
+        let h = `<div class="opts cols-2 compact">` + list.map(([v, l]) => optBtn("budget", v, l)).join("") + `</div>`;
+        h += `<div class="opts" style="margin-top:8px">${optBtn("budget", "unknown", "まだ分からない", "年収から借入の目安を出します", "🤔")}</div>`;
         if (state.budget === "unknown") {
           h += `<p class="q-sub">世帯年収（税込）</p><div class="chips">` +
             [400, 500, 600, 700, 800, 1000, 1200].map(v => chip("income", v, v === 1200 ? "1,200万円〜" : `${fmt(v)}万円`)).join("") +
@@ -162,7 +184,7 @@
     {
       id: "commute", title: "通勤・駅までの距離は？",
       render: () => {
-        let h = `<p class="q-sub">ふだんの通勤</p>` + opts("commute", Object.entries(COMMUTE).map(([k, v]) => [k, v.label]), "cols-2");
+        let h = `<p class="q-sub">ふだんの通勤</p>` + opts("commute", Object.entries(COMMUTE).map(([k, v]) => [k, v.label, "", v.ico]), "cols-2");
         if (state.land === "search") {
           h += `<p class="q-sub">駅からの距離（あとで変えて比べられます）</p>` + opts("walk", Object.entries(WALK).map(([k, v]) => [k, v.label]));
         }
@@ -172,10 +194,14 @@
     },
     {
       id: "family", title: "家族と暮らし方は？",
+      help: () => "決まっていなくても大丈夫。「まだ分からない」「おまかせ」を選ぶと、よくある広さで計算します。",
       render: () => {
-        let h = `<p class="q-sub">住む人数</p><div class="chips big">` + [[2, "2人"], [3, "3人"], [4, "4人"], [5, "5人以上"]].map(([v, l]) => chip("family", v, l)).join("") + `</div>`;
-        h += `<p class="q-sub">ほしい間取り</p><div class="chips big">` + [[2, "2LDK"], [3, "3LDK"], [4, "4LDK"], [5, "5LDK以上"]].map(([v, l]) => chip("rooms", v, l)).join("") + `</div>`;
-        h += `<p class="q-sub">駐車台数</p><div class="chips big">` + [[0, "なし"], [1, "1台"], [2, "2台"], [3, "3台以上"]].map(([v, l]) => chip("parking", v, l)).join("") + `</div>`;
+        let h = `<p class="q-sub">住む人数</p><div class="chips big">` + [[2, "2人"], [3, "3人"], [4, "4人"], [5, "5人以上"], ["unknown", "まだ分からない"]].map(([v, l]) => chip("family", v, l)).join("") + `</div>`;
+        h += `<p class="q-sub">ほしい間取り</p><div class="chips big">` + [["auto", "おまかせ"], [2, "2LDK"], [3, "3LDK"], [4, "4LDK"], [5, "5LDK以上"]].map(([v, l]) => chip("rooms", v, l)).join("") + `</div>`;
+        h += `<p class="q-sub">駐車台数</p><div class="chips big">` + [[0, "なし"], [1, "1台"], [2, "2台"], [3, "3台以上"], ["unknown", "未定"]].map(([v, l]) => chip("parking", v, l)).join("") + `</div>`;
+        if (state.family === "unknown" || state.rooms === "auto" || state.parking === "unknown") {
+          h += `<p class="note-box">分からないところは、${famLabel()}・${roomsLabel()}・駐車${parkingOf()}台の目安で計算します。あとから結果画面で広さを変えられます。</p>`;
+        }
         return h;
       },
       valid: () => state.family != null && state.rooms != null && state.parking != null
@@ -185,29 +211,29 @@
       help: () => "選んだ順に優先度が高くなります。",
       render: () => `<div class="opts cols-2">` + PRIORITIES.map(p => {
         const i = state.priorities.indexOf(p.id);
-        return `<button class="opt" type="button" data-prio="${p.id}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="rank">${i + 1}</span>` : ""}<strong>${p.label}</strong></button>`;
+        return `<button class="opt has-ico" type="button" data-prio="${p.id}" aria-pressed="${i >= 0}"><span class="ico" aria-hidden="true">${p.ico}</span><span class="opt-text"><strong>${p.label}</strong></span>${i >= 0 ? `<span class="rank">${i + 1}</span>` : ""}</button>`;
       }).join("") + `</div>`,
       valid: () => state.priorities.length > 0
     },
     {
       id: "freedom", title: "間取りの自由度は？", auto: true,
       render: () => opts("freedom", [
-        ["full", "自由に決めたい", "フルオーダー・自由設計"],
-        ["semi", "選択式でもよい", "決まった中から選ぶセミオーダー"],
-        ["price", "価格優先", "規格住宅も大歓迎"],
-        ["unknown", "まだ分からない", "3つの案で比べて決めたい"]
+        ["full", "自由に決めたい", "フルオーダー・自由設計", "✏️"],
+        ["semi", "選択式でもよい", "決まった中から選ぶセミオーダー", "🧩"],
+        ["price", "価格優先", "規格住宅も大歓迎", "💰"],
+        ["unknown", "まだ分からない", "3つの案で比べて決めたい", "🤔"]
       ]),
       valid: () => !!state.freedom
     }
   ];
 
   // ───────── UI部品 ─────────
-  function optBtn(key, value, label, sub) {
+  function optBtn(key, value, label, sub, ico) {
     const on = String(state[key]) === String(value);
-    return `<button class="opt" type="button" data-key="${key}" data-value="${value}" aria-pressed="${on}"><strong>${label}</strong>${sub ? `<small>${sub}</small>` : ""}</button>`;
+    return `<button class="opt ${ico ? "has-ico" : ""}" type="button" data-key="${key}" data-value="${value}" aria-pressed="${on}">${ico ? `<span class="ico" aria-hidden="true">${ico}</span>` : ""}<span class="opt-text"><strong>${label}</strong>${sub ? `<small>${sub}</small>` : ""}</span></button>`;
   }
   function opts(key, list, cls = "") {
-    return `<div class="opts ${cls}">` + list.map(([v, l, s]) => optBtn(key, v, l, s)).join("") + `</div>`;
+    return `<div class="opts ${cls}">` + list.map(([v, l, s, i]) => optBtn(key, v, l, s, i)).join("") + `</div>`;
   }
   function chip(key, value, label) {
     const on = String(state[key]) === String(value);
@@ -308,10 +334,16 @@
     return { value: loan + state.down, note: `年収${fmt(state.income)}万円の無理のない借入額 約${fmt(loan)}万円 ＋ 頭金${fmt(state.down)}万円で計算しています。` };
   }
 
-  function defaultFloor() { return { 2: 26, 3: 30, 4: 34, 5: 40 }[state.rooms] + (state.family >= 5 && state.rooms < 5 ? 2 : 0); }
+  // 「分からない」を選んだときは、よくある組み合わせで計算する
+  function familyOf() { return state.family === "unknown" ? 3 : state.family; }
+  function roomsOf() { return state.rooms === "auto" ? Math.max(2, Math.min(5, familyOf() === 2 ? 2 : familyOf())) : state.rooms; }
+  function parkingOf() { return state.parking === "unknown" ? 2 : state.parking; }
+  function famLabel() { return state.family === "unknown" ? "3人（目安）" : `${state.family}人${state.family >= 5 ? "以上" : ""}`; }
+  function roomsLabel() { return state.rooms === "auto" ? `${roomsOf()}LDK（目安）` : `${state.rooms}LDK`; }
+  function defaultFloor() { return { 2: 26, 3: 30, 4: 34, 5: 40 }[roomsOf()] + (familyOf() >= 5 && roomsOf() < 5 ? 2 : 0); }
   function defaultLand(floor) {
     // 2階建て・建ぺい率50%想定で延床と同じ広さ ＋ 駐車1台3.5坪 ＋ 庭を重視するなら+8坪
-    const t = floor + state.parking * 3.5 + (state.priorities.includes("space") ? 8 : 0);
+    const t = floor + parkingOf() * 3.5 + (state.priorities.includes("space") ? 8 : 0);
     return Math.max(30, Math.round(t));
   }
 
@@ -351,7 +383,7 @@
       const w = 3 - rank;
       const hit = p.tags.filter(t => pr.tags.includes(t));
       if (hit.length) { score += w * 8; matched.push(`「${pr.label}」に強い（${hit.slice(0, 2).join("・")}）`); }
-      if (id === "price") score += w * (110 - unitOf(p)) / 6;
+      if (id === "price") score += w * (110 - unitOf(p)) / 14;
     });
     const fit = {
       full: { full: 16, semi: 6, kikaku: 0 },
@@ -360,9 +392,9 @@
       unknown: { full: 4, semi: 8, kikaku: 4 }
     }[state.freedom][p.order];
     score += fit;
-    if (opt.cheap) score += (110 - unitOf(p)) / 3;
+    if (opt.cheap) score += (110 - unitOf(p)) / 5;
     if (p.local && state.priorities.includes("design")) score += 3;
-    score += { 1: 22, 2: 11 }[p.rec] || 0;   // 千葉レーダーのおすすめ会社
+    score += { 1: 32, 2: 24 }[p.rec] || 0;   // 優先して紹介したい会社
     return { score, matched };
   }
 
@@ -677,10 +709,10 @@
         <h2>総予算 <em>${fmt(tune.budget)}</em>万円で、<br>${fitCount ? `予算内の案が${fitCount}つ見つかりました。` : "条件を少しゆるめると見えてきます。"}</h2>
         <dl class="summary-grid">
           <div><dt>${buying ? "希望エリアの相場" : "延床"}</dt><dd>${buying ? `${Math.round(a.tp)}万/坪` : `${tune.floorTsubo}坪`}</dd></div>
-          <div><dt>${buying ? "土地の目安" : "間取り"}</dt><dd>${buying ? man(landPart) : `${state.rooms}LDK`}</dd></div>
-          <div><dt>${buying ? "建物にまわせる額" : "駐車"}</dt><dd>${buying ? man(Math.max(0, tune.budget - landPart)) : `${state.parking}台`}</dd></div>
+          <div><dt>${buying ? "土地の目安" : "間取り"}</dt><dd>${buying ? man(landPart) : roomsLabel()}</dd></div>
+          <div><dt>${buying ? "建物にまわせる額" : "駐車"}</dt><dd>${buying ? man(Math.max(0, tune.budget - landPart)) : `${parkingOf()}台`}</dd></div>
         </dl>
-        <p class="summary-cond">${areaLabel()} ／ ${state.family}人・${state.rooms}LDK・駐車${state.parking}台${buying ? ` ／ ${WALK[state.walk].label}` : ""}${tune.budgetNote ? `<br>${tune.budgetNote}` : ""}</p>
+        <p class="summary-cond">${areaLabel()} ／ ${famLabel()}・${roomsLabel()}・駐車${parkingOf()}台${buying ? ` ／ ${WALK[state.walk].label}` : ""}${tune.budgetNote ? `<br>${tune.budgetNote}` : ""}</p>
       </div>`;
 
     $("#walkDelta").innerHTML = walkComparison(tune, plans[0]);
@@ -692,7 +724,7 @@
         <span class="pc-top"><small>PLAN ${"ABC"[i]}</small>${fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">${man(p.bd.total - p.target)}オーバー</span>`}</span>
         <span class="pc-name">${p.name}</span>
         <span class="pc-total" style="color:${fits ? "var(--ok)" : "var(--ember)"}">${man(p.bd.total)}</span>
-        <span class="pc-meta">${where}<b>${p.top.rec ? "★" : ""}${p.top.maker}</b>・${ORDER[p.top.order].short}</span>
+        <span class="pc-meta">${where}<b>${p.top.maker}</b>・${ORDER[p.top.order].short}</span>
       </button>`;
     }).join("");
     $("#planDots").innerHTML = plans.map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("");
@@ -700,7 +732,7 @@
     $("#planBody").innerHTML = renderPlan(plan, buying);
     $("#brands").innerHTML = renderBrands(tune, plans);
 
-    $("#disclose").textContent = "★は千葉レーダーのおすすめ会社です。条件が近い場合は優先して表示しています。相談は無料です。";
+    $("#disclose").textContent = "相談は無料です。1通からお気軽にどうぞ。";
 
     if (!state.consultDirty) $("#consultText").value = consultText(plans, plan);
   }
@@ -735,13 +767,14 @@
         <p class="bc-note">${p.note}</p>
         <div class="bc-row"><span>${buying ? "希望エリアで建てると" : "この条件で建てると"}</span><b style="color:${diff <= 0 ? "var(--ok)" : "var(--ember)"}">${man(total)}${diff > 0 ? `（+${man(diff)}）` : ""}</b></div>
         <p class="bc-st">${where}</p>
+        ${buying ? bunjoLink(p) : ""}
         <button class="pick" type="button" data-pick="${p.maker}" aria-pressed="${picked}">${picked ? "✓ 相談文に入れました" : "この会社も相談したい"}</button>
       </div>`;
     }).join("");
     return `<section class="brands">
       <p class="eyebrow">PREMIUM</p>
       <h3>憧れのハウスメーカーで建てるなら</h3>
-      <p>千葉レーダーが特におすすめする${brands.length}社。今の条件で建てた場合の総額と、予算内で建てられる場所です。</p>
+      <p>人気のハウスメーカー${brands.length}社で、今の条件で建てた場合の総額と、予算内で建てられる場所です。</p>
       <div class="brand-list">${cards}</div>
     </section>`;
   }
@@ -759,18 +792,19 @@
             <div class="num">${Math.round(s.tpAdj)}万/坪<small style="color:${s.total <= p.target ? "var(--ok)" : "var(--ember)"}">総額 ${man(s.total)}</small></div></div>`).join("")}
         </div>
         ${p.stationsAll ? `<p class="data-note">選んだエリア${p.stationsAll}駅のうち、この組み合わせで予算内は${p.stationsOk}駅。</p>` : ""}
+        ${suumoLinks(p.stations.map(s => s.city))}
       </div>` : "";
     const productsHtml = `
       <div class="block"><h4>HOUSE<span>住宅会社と建て方</span></h4>
         <div class="products">${p.products.map((x, i) => `
           <div class="product ${i === 0 ? "top" : ""} ${x.rec === 1 ? "rec1" : ""}">
-            <div class="product-head"><strong>${x.rec ? `<span class="star">★</span>` : ""}${x.maker}</strong><span class="order">${x.product === ORDER[x.order].short ? x.product : `${x.product}・${ORDER[x.order].short}`}</span></div>
+            <div class="product-head"><strong>${x.maker}</strong><span class="order">${x.product === ORDER[x.order].short ? x.product : `${x.product}・${ORDER[x.order].short}`}</span></div>
             <div class="price">本体 約${Math.round(unitOf(x))}万円/坪（${tsuboOf(x).join("〜")}）／ 総額目安 ${man(x.total)}</div>
             <div class="why">${(x.matched && x.matched.length ? x.matched.slice(0, 2).join("、") + "。" : "") + x.note}</div>
             ${x.src ? `<div class="src">根拠：${x.src}</div>` : ""}
+            ${state.land === "search" ? bunjoLink(x) : ""}
             <div class="badges">
               ${x.fits ? `<span class="badge ok">予算内</span>` : `<span class="badge over">${man(x.total - p.target)}オーバー</span>`}
-              ${x.rec ? `<span class="badge rec">千葉レーダーおすすめ</span>` : ""}
               ${x.est ? `<span class="badge est">価格は推定・要確認</span>` : ""}
             </div>
           </div>`).join("")}
@@ -788,7 +822,7 @@
     const reasons = [];
     if (p.top.matched && p.top.matched.length) reasons.push(...p.top.matched);
     if (buying && p.stations[0]) reasons.push(`${p.stations[0].name}駅周辺（${WALK[state.walk].short}想定）で土地 ${p.L}坪が約${man(p.stations[0].tpAdj * p.L)}`);
-    reasons.push(`${ORDER[p.top.order].label}で${state.rooms}LDK・延床${p.F}坪`);
+    reasons.push(`${ORDER[p.top.order].label}で${roomsLabel()}・延床${p.F}坪`);
 
     return `
       <article class="plan">
@@ -815,7 +849,7 @@
     lines.push(`総予算：${fmt(tune.budget)}万円${state.budget === "unknown" ? "（年収から算出）" : ""}／土地：${landLabel}`);
     lines.push(`${buying ? "希望エリア" : "建築地"}：${areaLabel()}`);
     lines.push(`通勤：${COMMUTE[state.commute].label}${buying ? `／駅距離：${WALK[state.walk].label}` : ""}`);
-    lines.push(`家族：${state.family}人／希望：${state.rooms}LDK・駐車場${state.parking}台`);
+    lines.push(`家族：${state.family === "unknown" ? "未定" : famLabel()}／希望：${state.rooms === "auto" ? "おまかせ" : roomsLabel()}・駐車場${state.parking === "unknown" ? "未定" : `${state.parking}台`}`);
     lines.push(`重視すること：${prios}`);
     lines.push(`間取りの自由度：${freedom}`);
     lines.push("");
